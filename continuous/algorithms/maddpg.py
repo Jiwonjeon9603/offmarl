@@ -362,6 +362,7 @@ class MATD3(object):
             log_and_print(list(dic.keys()), list(dic.values()), t, multi=True)
 
 
+
     def update_all_targets(self):
         """
         Update all target networks (called after normal updates have been performed for each agent)

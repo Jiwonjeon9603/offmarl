@@ -8,7 +8,7 @@ import numpy as np
 from utils.tb_log import log_and_print
 from utils.noise import action_noise
 import random
-
+import wandb
 MSELoss = torch.nn.MSELoss()
 
 class MATD3CC(object):
@@ -526,7 +526,12 @@ class MATD3CC(object):
                 dic.update({"mimic_term":(self.omar_coe * mimic_term).item()})
                 dic.update({"pred_qvals":((1 - self.omar_coe) * pred_qvals.mean()).item()})
             log_and_print(list(dic.keys()), list(dic.values()), t, multi=True)
-
+            wandb.log({"bc_loss": self.bc_tau * bc_loss.item()}, step=t)
+            wandb.log({"pol_loss": (1-self.bc_tau) * pol_loss.item()}, step=t)
+            if self.bc_tau != 1:
+                wandb.log({"vf_loss": vf_loss.item()}, step=t)
+            if self.cql:
+                wandb.log({"cql_term": (self.cql_alpha * cql_term).item()}, step=t)
 
     def update_all_targets(self):
         """

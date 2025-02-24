@@ -17,7 +17,7 @@ import random
 import copy
 import shutil
 from utils.vae_class import VAE
-
+import wandb
 
 from utils.env_wrappers import SubprocVecEnv, DummyVecEnv
 import h5py
@@ -127,6 +127,40 @@ def offline_train(config):
     torch.backends.cudnn.deterministic = True
 
     torch.set_num_threads(config.n_training_threads)
+
+    wandb.login(relogin=True, key='ad42a1cee565925e2b5065efe7e76c329b954a29')
+    
+    if config.adapt:
+        algo_name = "adapt_"
+
+    
+    elif config.origin_and_adapt:
+        algo_name = "joint_"
+
+        
+    else:
+        algo_name = "origin_"
+
+    
+
+    if not config.cql:
+        group_name = "bc"
+        algo_name+="bc"
+        config.bc_tau = 1
+    if config.cql:
+        algo_name+="cql"
+        if config.cf_cql:
+            group_name="cfcql"
+            algo_name+="cfcql"
+        else:
+            group_name="cql"
+        
+    if config.adapt or config.origin_and_adapt:
+        algo_name += "_" + str(config.adapt_num_datasets) + "_threshold_" + str(config.adapt_threshold)
+        if config.adapt_th_mean:
+            algo_name += "_MEAN_th"
+        
+    wandb.init(project="TEST_Offline_ALGOS_" + config.env_id + "_" + config.data_type, group = group_name, name = algo_name + "_seed_" + str(config.dataset_num))
 
     if config.env_id in ['simple_spread', 'simple_tag', 'simple_world']:
         if config.env_id == 'simple_spread':
@@ -242,7 +276,8 @@ def offline_train(config):
             if not config.no_log:
                 log_and_print('eval_return', eval_return, t)
                 log_and_print('normed_eval_return', eval_return/replay_buffer.ave_reward, t)
-                
+                wandb.log({"eval_return": eval_return}, step=t)
+                wandb.log({"normed_eval_return": eval_return/replay_buffer.ave_reward}, step=t)
 
         if (t % config.steps_per_update) < config.n_rollout_threads:
             ma_agent.prep_training(device='gpu') if config.use_gpu else ma_agent.prep_training(device='cpu')
@@ -275,7 +310,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--env_id", help="Name of environment", type=str, default='simple_spread')
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
-    parser.add_argument("--dataset_num", default=0, type=int, help="Dataset number")
+    
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=1, type=int)
     parser.add_argument("--discrete_action", action='store_true', default=False)
@@ -296,14 +331,15 @@ if __name__ == '__main__':
 
     parser.add_argument('--gaussian_noise_std', default=0.1, type=float)
 
-    parser.add_argument("--data_type", default='medium', type=str)
+    parser.add_argument("--data_type", default='medium-replay', type=str)
     parser.add_argument('--dataset_dir', default='./datasets', type=str)
 
+    
     parser.add_argument('--eval_episodes', default=10, type=int)
     parser.add_argument('--eval_interval', default=1000, type=int)
     parser.add_argument('--num_steps', default=int(1e5), type=int)
 
-    parser.add_argument("--cql", action='store_true')
+    
     parser.add_argument("--set_alpha", action='store_true')
     parser.add_argument('--cql_alpha', default=1.0, type=float)
     parser.add_argument("--lse_temp", default=1.0, type=float)
@@ -326,16 +362,16 @@ if __name__ == '__main__':
     parser.add_argument('--omar_num_elites', default=10, type=int)
 
     parser.add_argument("--logging_interval", default=100, type=int)
-    parser.add_argument("--central_critic", action='store_true')
+    parser.add_argument("--central_critic", default=True, action='store_true')  ## MADDPGCC
     parser.add_argument("--no_log", action='store_true')
-    parser.add_argument("--cf_cql", action='store_true')
+    parser.add_argument("--cf_cql", default=False, action='store_true')  ## CFCQL
     parser.add_argument("--no_soft_q", action='store_true')
     parser.add_argument("--ca_ratio", default=5, type=int)
     parser.add_argument("--action_noise_scale", default=0.05, type=float)
     parser.add_argument("--no_cf_omar", action='store_true')
     parser.add_argument("--no_cf_pol", action='store_true')
-    parser.add_argument("--cf_target", action='store_true')
-    
+    parser.add_argument("--cf_target", default=False, action='store_true')  ## Counterfactual target
+     
     
 
     parser.add_argument("--cf_weight", action='store_true')
@@ -345,17 +381,102 @@ if __name__ == '__main__':
     parser.add_argument("--vae_model_dir", default="./results/vae", type=str)
     parser.add_argument("--vae_hidden_dim", default=750, type=int)
     
+    
+    parser.add_argument("--cql", default=True, action='store_true')  ## CQL
+    
+    parser.add_argument("--dataset_num", default=100, type=int, help="Dataset number")
+    parser.add_argument("--adapt_num_datasets", default=20000, type=int)
+    
+    parser.add_argument("--adapt_threshold", default=0.03, type=float)
+    
+    parser.add_argument("--adapt_th_mean", default=False, action="store_true")
+    parser.add_argument("--dataset_num_agents", default=3, type=int)
+    # parser.add_argument('--adapt_dataset_dir', default='./datasets/adapt/simple_spread/medium-replay/max_threshold_0.05/20000', type=str)
+    
+    parser.add_argument("--origin", default=True, action="store_true")
+    parser.add_argument("--adapt", default=False, action="store_true")
+    parser.add_argument("--origin_and_adapt", default=False, action="store_true")
+    
+    parser.add_argument("--concat_datasets", default=False, action="store_true")
+    
+    parser.add_argument("--use_all_origin_dataset", default=False, action="store_true")
+    parser.add_argument("--use_origins_and_adapt_dataset", default=True, action="store_true")
+    
+
+
+    parser.add_argument("--adapt_data_seed", default=1220, type=int)
+
+    
     config = parser.parse_args()
 
     if config.env_id in ['simple_spread', 'simple_tag']:
-        config.num_steps = 200000
+        config.num_steps = 2000000 #200000
     elif config.env_id == 'HalfCheetah-v2':
         config.num_steps = int(1e6)
         config.steps_per_update = 10
         config.eval_interval = 5000
         config.episode_length=1000
         config.gamma=0.99
+    
+    if config.concat_datasets:
+        if config.use_all_origin_dataset:
+            dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
+            seed_folders = []
+            for i in [0,1,2,3,4]:
+                seed_folders.append(dataset_dir + "seed_" + str(i) + "_data") 
+            for i in range(config.dataset_num_agents):
+                obs_list = [np.load(os.path.join(folder, "obs_" + str(i) + ".npy")) for folder in seed_folders]
+                next_obs_list = [np.load(os.path.join(folder, "next_obs_" + str(i) + ".npy")) for folder in seed_folders]
+                dones_list = [np.load(os.path.join(folder, "dones_" + str(i) + ".npy")) for folder in seed_folders]
+                acs_list = [np.load(os.path.join(folder, "acs_" + str(i) + ".npy")) for folder in seed_folders]
+                rews_list = [np.load(os.path.join(folder, "rews_" + str(i) + ".npy")) for folder in seed_folders]
+                
+                final_obs = np.concatenate(obs_list, axis=0)
+                final_next_obs = np.concatenate(next_obs_list, axis=0)
+                final_dones = np.concatenate(dones_list, axis=0)
+                final_acs = np.concatenate(acs_list, axis=0)
+                final_rews = np.concatenate(rews_list, axis=0)
+                
+                
+                data_root_path = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/seed_100_data'
+                os.makedirs(data_root_path, exist_ok=True)
+                np.save(data_root_path + '/obs_' + str(i) +".npy", final_obs)       
+                np.save(data_root_path + '/next_obs_' + str(i) +".npy", final_next_obs)   
+                np.save(data_root_path + '/dones_' + str(i) +".npy", final_dones)   
+                np.save(data_root_path + '/acs_' + str(i) +".npy", final_acs)   
+                np.save(data_root_path + '/rews_' + str(i) +".npy", final_rews)   
+    
+        if config.use_origins_and_adapt_dataset:
+            dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
+            seed_folders = []
+            for i in [100, config.adapt_data_seed]:
+                seed_folders.append(dataset_dir + "seed_" + str(i) + "_data") 
+            for i in range(config.dataset_num_agents):
+                obs_list = [np.load(os.path.join(folder, "obs_" + str(i) + ".npy")) for folder in seed_folders]
+                next_obs_list = [np.load(os.path.join(folder, "next_obs_" + str(i) + ".npy")) for folder in seed_folders]
+                dones_list = [np.load(os.path.join(folder, "dones_" + str(i) + ".npy")) for folder in seed_folders]
+                acs_list = [np.load(os.path.join(folder, "acs_" + str(i) + ".npy")) for folder in seed_folders]
+                rews_list = [np.load(os.path.join(folder, "rews_" + str(i) + ".npy")) for folder in seed_folders]
+                
+                final_obs = np.concatenate(obs_list, axis=0)
+                final_next_obs = np.concatenate(next_obs_list, axis=0)
+                final_dones = np.concatenate(dones_list, axis=0)
+                final_acs = np.concatenate(acs_list, axis=0)
+                final_rews = np.concatenate(rews_list, axis=0)
+                
+                
+                data_root_path = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/seed_' + str(config.adapt_data_seed) + '00_data'
+                os.makedirs(data_root_path, exist_ok=True)
+                np.save(data_root_path + '/obs_' + str(i) +".npy", final_obs)       
+                np.save(data_root_path + '/next_obs_' + str(i) +".npy", final_next_obs)   
+                np.save(data_root_path + '/dones_' + str(i) +".npy", final_dones)   
+                np.save(data_root_path + '/acs_' + str(i) +".npy", final_acs)   
+                np.save(data_root_path + '/rews_' + str(i) +".npy", final_rews)   
+    
+        print("******************* Finished concatenating datasets!! ***********************")
+        sys.exit()
         
+
     config.dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/' + 'seed_{}_data'.format(config.dataset_num)
-        
+    
     offline_train(config)
