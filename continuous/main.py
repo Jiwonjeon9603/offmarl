@@ -130,37 +130,22 @@ def offline_train(config):
 
     wandb.login(relogin=True, key='ad42a1cee565925e2b5065efe7e76c329b954a29')
     
-    if config.adapt:
-        algo_name = "adapt_"
 
-    
-    elif config.origin_and_adapt:
-        algo_name = "joint_"
-
-        
-    else:
-        algo_name = "origin_"
-
-    
 
     if not config.cql:
         group_name = "bc"
-        algo_name+="bc"
+        algo_name="bc"
         config.bc_tau = 1
+        
     if config.cql:
-        algo_name+="cql"
-        if config.cf_cql:
-            group_name="cfcql"
-            algo_name+="cfcql"
-        else:
-            group_name="cql"
+        algo_name="macql"
+        group_name="macql"
         
-    if config.adapt or config.origin_and_adapt:
-        algo_name += "_" + str(config.adapt_num_datasets) + "_threshold_" + str(config.adapt_threshold)
-        if config.adapt_th_mean:
-            algo_name += "_MEAN_th"
+    if config.cf_cql:
+        group_name="cfcql"
+        algo_name="cfcql"
         
-    wandb.init(project="TEST_Offline_ALGOS_" + config.env_id + "_" + config.data_type, group = group_name, name = algo_name + "_seed_" + str(config.dataset_num))
+    wandb.init(project="0317_Offline_ALGOS_" + config.env_id + "_" + config.data_type, group = group_name, name = algo_name + "_seed_" + str(config.dataset_num))
 
     if config.env_id in ['simple_spread', 'simple_tag', 'simple_world']:
         if config.env_id == 'simple_spread':
@@ -364,7 +349,7 @@ if __name__ == '__main__':
     parser.add_argument("--logging_interval", default=100, type=int)
     parser.add_argument("--central_critic", default=True, action='store_true')  ## MADDPGCC
     parser.add_argument("--no_log", action='store_true')
-    parser.add_argument("--cf_cql", default=False, action='store_true')  ## CFCQL
+    parser.add_argument("--cf_cql", default=True, action='store_true')  ## CFCQL
     parser.add_argument("--no_soft_q", action='store_true')
     parser.add_argument("--ca_ratio", default=5, type=int)
     parser.add_argument("--action_noise_scale", default=0.05, type=float)
@@ -384,23 +369,23 @@ if __name__ == '__main__':
     
     parser.add_argument("--cql", default=True, action='store_true')  ## CQL
     
-    parser.add_argument("--dataset_num", default=100, type=int, help="Dataset number")
-    parser.add_argument("--adapt_num_datasets", default=20000, type=int)
+    parser.add_argument("--dataset_num", default=0, type=int, help="Dataset number")
+    #parser.add_argument("--adapt_num_datasets", default=20000, type=int)
     
-    parser.add_argument("--adapt_threshold", default=0.03, type=float)
+    #parser.add_argument("--adapt_threshold", default=0.05, type=float)
     
-    parser.add_argument("--adapt_th_mean", default=False, action="store_true")
+    #parser.add_argument("--adapt_th_mean", default=False, action="store_true")
     parser.add_argument("--dataset_num_agents", default=3, type=int)
     # parser.add_argument('--adapt_dataset_dir', default='./datasets/adapt/simple_spread/medium-replay/max_threshold_0.05/20000', type=str)
     
-    parser.add_argument("--origin", default=True, action="store_true")
-    parser.add_argument("--adapt", default=False, action="store_true")
-    parser.add_argument("--origin_and_adapt", default=False, action="store_true")
+    #parser.add_argument("--origin", default=True, action="store_true")
+    #parser.add_argument("--adapt", default=False, action="store_true")
+    #parser.add_argument("--origin_and_adapt", default=False, action="store_true")
     
     parser.add_argument("--concat_datasets", default=False, action="store_true")
     
     parser.add_argument("--use_all_origin_dataset", default=False, action="store_true")
-    parser.add_argument("--use_origins_and_adapt_dataset", default=True, action="store_true")
+    parser.add_argument("--use_origins_and_adapt_dataset", default=False, action="store_true")
     
 
 
