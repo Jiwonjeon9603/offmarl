@@ -122,7 +122,8 @@ class DummyVecEnv(VecEnv):
 
     def reset(self):
         results = [env.reset() for env in self.envs]
-        return np.array(results)
+        return results
+        #return np.array(results)
 
     def close(self):
         return

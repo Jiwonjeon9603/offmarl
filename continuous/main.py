@@ -31,7 +31,7 @@ def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
     def get_env_fn(rank):
         def init_env():
             env = make_env(env_id, discrete_action=discrete_action)
-            env.seed(seed + rank * 1000)
+            env._seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
         return init_env
@@ -74,7 +74,11 @@ def eval_policy(agent, env_name, seed, eval_episodes, discrete_action, env_args=
     else:
         avg_predator_return = 0.
     
-        env = make_parallel_env(env_name, 1, seed + 100, discrete_action)
+        #env = make_parallel_env(env_name, 1, seed + 100, discrete_action)
+        env = make_env(env_name, discrete_action=discrete_action)
+        env._seed(seed + 100)
+        np.random.seed(seed + 100)
+
 
         for ep_i in range(0, eval_episodes):
             obs = env.reset()
@@ -84,14 +88,16 @@ def eval_policy(agent, env_name, seed, eval_episodes, discrete_action, env_args=
                 obs_len = agent.nagents
                 if env_name in ['simple_tag', 'simple_world'] and "CC" in agent.__class__.__name__:
                     obs_len += agent.num_preys
-                torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])), requires_grad=False) for i in range(obs_len)]
+                torch_obs = [Variable(torch.Tensor(np.vstack(obs[i]).transpose()), requires_grad=False) for i in range(obs_len)]
+                #torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])), requires_grad=False) for i in range(obs_len)]
                 torch_agent_actions = agent.step(torch_obs, explore=False)
-                agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
-                actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
+                #agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
+                actions = [ac.data.numpy() for ac in torch_agent_actions]
+                #actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
                 next_obs, rewards, dones, infos = env.step(actions)
                 
                 if env_name in ['simple_tag', 'simple_world']:
-                    avg_predator_return += rewards[0][0]
+                    avg_predator_return += rewards[0]
                 else:
                     avg_agent_reward = np.mean(rewards[0])
                     avg_predator_return += avg_agent_reward
@@ -144,8 +150,9 @@ def offline_train(config):
     if config.cf_cql:
         group_name="cfcql"
         algo_name="cfcql"
-        
-    wandb.init(project="0317_Offline_ALGOS_" + config.env_id + "_" + config.data_type, group = group_name, name = algo_name + "_seed_" + str(config.dataset_num))
+    
+    algo_name = "cfcql"
+    wandb.init(project="0327_CFCQL_" + config.env_id + "_" + config.data_type, group = group_name + "_" + str(config.dataset_num), name = algo_name + "_seed_" + str(config.dataset_num))
 
     if config.env_id in ['simple_spread', 'simple_tag', 'simple_world']:
         if config.env_id == 'simple_spread':
@@ -294,7 +301,7 @@ if __name__ == '__main__':
     parser.add_argument("--dir", help="Name of directory to store model/training contents", type=str, default='results')
 
     parser.add_argument("--env_id", help="Name of environment", type=str, default='simple_spread')
-    parser.add_argument("--seed", default=0, type=int, help="Random seed")
+
     
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=1, type=int)
@@ -366,10 +373,12 @@ if __name__ == '__main__':
     parser.add_argument("--vae_model_dir", default="./results/vae", type=str)
     parser.add_argument("--vae_hidden_dim", default=750, type=int)
     
-    
+
     parser.add_argument("--cql", default=True, action='store_true')  ## CQL
     
-    parser.add_argument("--dataset_num", default=0, type=int, help="Dataset number")
+    
+    parser.add_argument("--seed", default=2, type=int, help="Random seed")
+    parser.add_argument("--dataset_num", default=7211100, type=int, help="Dataset number") #5740110000
     #parser.add_argument("--adapt_num_datasets", default=20000, type=int)
     
     #parser.add_argument("--adapt_threshold", default=0.05, type=float)
@@ -382,14 +391,17 @@ if __name__ == '__main__':
     #parser.add_argument("--adapt", default=False, action="store_true")
     #parser.add_argument("--origin_and_adapt", default=False, action="store_true")
     
-    parser.add_argument("--concat_datasets", default=False, action="store_true")
+    parser.add_argument("--concat_datasets", default=True, action="store_true")
     
     parser.add_argument("--use_all_origin_dataset", default=False, action="store_true")
-    parser.add_argument("--use_origins_and_adapt_dataset", default=False, action="store_true")
+    parser.add_argument("--use_origins_and_adapt_dataset", default=True, action="store_true")
     
+    parser.add_argument("--use_adapt_and_adapt_dataset", default=False, action="store_true")
 
+    parser.add_argument("--adapt_data_seed", default=73221, type=int)
+    parser.add_argument("--original_data_seed", default=7, type=int)
+    parser.add_argument("--adapt_data_seed2", default=41, type=int)
 
-    parser.add_argument("--adapt_data_seed", default=1220, type=int)
 
     
     config = parser.parse_args()
@@ -434,7 +446,7 @@ if __name__ == '__main__':
         if config.use_origins_and_adapt_dataset:
             dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
             seed_folders = []
-            for i in [100, config.adapt_data_seed]:
+            for i in [config.original_data_seed, config.adapt_data_seed]:
                 seed_folders.append(dataset_dir + "seed_" + str(i) + "_data") 
             for i in range(config.dataset_num_agents):
                 obs_list = [np.load(os.path.join(folder, "obs_" + str(i) + ".npy")) for folder in seed_folders]
@@ -451,6 +463,33 @@ if __name__ == '__main__':
                 
                 
                 data_root_path = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/seed_' + str(config.adapt_data_seed) + '00_data'
+                os.makedirs(data_root_path, exist_ok=True)
+                np.save(data_root_path + '/obs_' + str(i) +".npy", final_obs)       
+                np.save(data_root_path + '/next_obs_' + str(i) +".npy", final_next_obs)   
+                np.save(data_root_path + '/dones_' + str(i) +".npy", final_dones)   
+                np.save(data_root_path + '/acs_' + str(i) +".npy", final_acs)   
+                np.save(data_root_path + '/rews_' + str(i) +".npy", final_rews)   
+                
+        if config.use_adapt_and_adapt_dataset:
+            dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
+            seed_folders = []
+            for i in [0, config.adapt_data_seed, config.adapt_data_seed2]:
+                seed_folders.append(dataset_dir + "seed_" + str(i) + "_data") 
+            for i in range(config.dataset_num_agents):
+                obs_list = [np.load(os.path.join(folder, "obs_" + str(i) + ".npy")) for folder in seed_folders]
+                next_obs_list = [np.load(os.path.join(folder, "next_obs_" + str(i) + ".npy")) for folder in seed_folders]
+                dones_list = [np.load(os.path.join(folder, "dones_" + str(i) + ".npy")) for folder in seed_folders]
+                acs_list = [np.load(os.path.join(folder, "acs_" + str(i) + ".npy")) for folder in seed_folders]
+                rews_list = [np.load(os.path.join(folder, "rews_" + str(i) + ".npy")) for folder in seed_folders]
+                
+                final_obs = np.concatenate(obs_list, axis=0)
+                final_next_obs = np.concatenate(next_obs_list, axis=0)
+                final_dones = np.concatenate(dones_list, axis=0)
+                final_acs = np.concatenate(acs_list, axis=0)
+                final_rews = np.concatenate(rews_list, axis=0)
+                
+                
+                data_root_path = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/seed_' + str(config.adapt_data_seed) + str(config.adapt_data_seed2) + '00_data'
                 os.makedirs(data_root_path, exist_ok=True)
                 np.save(data_root_path + '/obs_' + str(i) +".npy", final_obs)       
                 np.save(data_root_path + '/next_obs_' + str(i) +".npy", final_next_obs)   

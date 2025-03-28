@@ -131,3 +131,4 @@ results/
 datasets/
 .vscode/
 cmd_list.txt
+wandb/
