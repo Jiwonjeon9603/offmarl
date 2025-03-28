@@ -324,7 +324,7 @@ if __name__ == '__main__':
     parser.add_argument('--gaussian_noise_std', default=0.1, type=float)
 
     parser.add_argument("--data_type", default='medium-replay', type=str)
-    parser.add_argument('--dataset_dir', default='./datasets', type=str)
+    parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str)
 
     
     parser.add_argument('--eval_episodes', default=10, type=int)
@@ -378,7 +378,7 @@ if __name__ == '__main__':
     
     
     parser.add_argument("--seed", default=2, type=int, help="Random seed")
-    parser.add_argument("--dataset_num", default=7211100, type=int, help="Dataset number") #5740110000
+    parser.add_argument("--dataset_num", default=7422100, type=int, help="Dataset number") #5740110000
     #parser.add_argument("--adapt_num_datasets", default=20000, type=int)
     
     #parser.add_argument("--adapt_threshold", default=0.05, type=float)
@@ -391,14 +391,14 @@ if __name__ == '__main__':
     #parser.add_argument("--adapt", default=False, action="store_true")
     #parser.add_argument("--origin_and_adapt", default=False, action="store_true")
     
-    parser.add_argument("--concat_datasets", default=True, action="store_true")
+    parser.add_argument("--concat_datasets", default=False, action="store_true")
     
     parser.add_argument("--use_all_origin_dataset", default=False, action="store_true")
     parser.add_argument("--use_origins_and_adapt_dataset", default=True, action="store_true")
     
     parser.add_argument("--use_adapt_and_adapt_dataset", default=False, action="store_true")
 
-    parser.add_argument("--adapt_data_seed", default=73221, type=int)
+    parser.add_argument("--adapt_data_seed", default=74221, type=int)
     parser.add_argument("--original_data_seed", default=7, type=int)
     parser.add_argument("--adapt_data_seed2", default=41, type=int)
 
