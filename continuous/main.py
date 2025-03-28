@@ -152,7 +152,7 @@ def offline_train(config):
         algo_name="cfcql"
     
     algo_name = "cfcql"
-    wandb.init(project="0327_CFCQL_" + config.env_id + "_" + config.data_type, group = group_name + "_" + str(config.dataset_num), name = algo_name + "_seed_" + str(config.dataset_num))
+    wandb.init(project="0327_CFCQL_HLReturn" + config.env_id + "_" + config.data_type, group = group_name + "_" + str(config.dataset_num), name = algo_name + "_seed_" + str(config.dataset_num))
 
     if config.env_id in ['simple_spread', 'simple_tag', 'simple_world']:
         if config.env_id == 'simple_spread':
@@ -324,7 +324,9 @@ if __name__ == '__main__':
     parser.add_argument('--gaussian_noise_std', default=0.1, type=float)
 
     parser.add_argument("--data_type", default='medium-replay', type=str)
-    parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str)
+    parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/combined_data/mpe', type=str)
+    parser.add_argument('--adapt_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/adapt_data/mpe', type=str)
+    parser.add_argument('--original_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str)
 
     
     parser.add_argument('--eval_episodes', default=10, type=int)
@@ -377,8 +379,8 @@ if __name__ == '__main__':
     parser.add_argument("--cql", default=True, action='store_true')  ## CQL
     
     
-    parser.add_argument("--seed", default=2, type=int, help="Random seed")
-    parser.add_argument("--dataset_num", default=7422100, type=int, help="Dataset number") #5740110000
+    parser.add_argument("--seed", default=0, type=int, help="Random seed")
+    parser.add_argument("--dataset_num", default="002111100", type=str, help="Dataset number") #5740110000
     #parser.add_argument("--adapt_num_datasets", default=20000, type=int)
     
     #parser.add_argument("--adapt_threshold", default=0.05, type=float)
@@ -392,6 +394,7 @@ if __name__ == '__main__':
     #parser.add_argument("--origin_and_adapt", default=False, action="store_true")
     
     parser.add_argument("--concat_datasets", default=False, action="store_true")
+    parser.add_argument("--concat_datasets_alot", default=True, action="store_true")
     
     parser.add_argument("--use_all_origin_dataset", default=False, action="store_true")
     parser.add_argument("--use_origins_and_adapt_dataset", default=True, action="store_true")
@@ -417,7 +420,7 @@ if __name__ == '__main__':
     
     if config.concat_datasets:
         if config.use_all_origin_dataset:
-            dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
+            dataset_dir = config.original_dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
             seed_folders = []
             for i in [0,1,2,3,4]:
                 seed_folders.append(dataset_dir + "seed_" + str(i) + "_data") 
@@ -444,31 +447,44 @@ if __name__ == '__main__':
                 np.save(data_root_path + '/rews_' + str(i) +".npy", final_rews)   
     
         if config.use_origins_and_adapt_dataset:
-            dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
-            seed_folders = []
-            for i in [config.original_data_seed, config.adapt_data_seed]:
-                seed_folders.append(dataset_dir + "seed_" + str(i) + "_data") 
-            for i in range(config.dataset_num_agents):
-                obs_list = [np.load(os.path.join(folder, "obs_" + str(i) + ".npy")) for folder in seed_folders]
-                next_obs_list = [np.load(os.path.join(folder, "next_obs_" + str(i) + ".npy")) for folder in seed_folders]
-                dones_list = [np.load(os.path.join(folder, "dones_" + str(i) + ".npy")) for folder in seed_folders]
-                acs_list = [np.load(os.path.join(folder, "acs_" + str(i) + ".npy")) for folder in seed_folders]
-                rews_list = [np.load(os.path.join(folder, "rews_" + str(i) + ".npy")) for folder in seed_folders]
+            if config.concat_datasets_alot:
+                root_adapt_dataset_dir = config.adapt_dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
+                root_original_dataset_dir = config.original_dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
                 
-                final_obs = np.concatenate(obs_list, axis=0)
-                final_next_obs = np.concatenate(next_obs_list, axis=0)
-                final_dones = np.concatenate(dones_list, axis=0)
-                final_acs = np.concatenate(acs_list, axis=0)
-                final_rews = np.concatenate(rews_list, axis=0)
+
+                for k in os.listdir(root_adapt_dataset_dir):
+                    if k.startswith("seed"):
+                        original_data_seed = k.split("_")[1][0]
+                        seed_folders = []
+                        for i in [original_data_seed, k]:
+                            if i == original_data_seed:
+                                seed_folders.append(root_original_dataset_dir + "seed_" + original_data_seed + "_data") 
+                            else:
+                                seed_folders.append(root_adapt_dataset_dir + "seed_" + k.split("_")[1] + "_data") 
+
                 
-                
-                data_root_path = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/seed_' + str(config.adapt_data_seed) + '00_data'
-                os.makedirs(data_root_path, exist_ok=True)
-                np.save(data_root_path + '/obs_' + str(i) +".npy", final_obs)       
-                np.save(data_root_path + '/next_obs_' + str(i) +".npy", final_next_obs)   
-                np.save(data_root_path + '/dones_' + str(i) +".npy", final_dones)   
-                np.save(data_root_path + '/acs_' + str(i) +".npy", final_acs)   
-                np.save(data_root_path + '/rews_' + str(i) +".npy", final_rews)   
+                        for i in range(config.dataset_num_agents):
+                            obs_list = [np.load(os.path.join(folder, "obs_" + str(i) + ".npy")) for folder in seed_folders]
+                            next_obs_list = [np.load(os.path.join(folder, "next_obs_" + str(i) + ".npy")) for folder in seed_folders]
+                            dones_list = [np.load(os.path.join(folder, "dones_" + str(i) + ".npy")) for folder in seed_folders]
+                            acs_list = [np.load(os.path.join(folder, "acs_" + str(i) + ".npy")) for folder in seed_folders]
+                            rews_list = [np.load(os.path.join(folder, "rews_" + str(i) + ".npy")) for folder in seed_folders]
+                            
+                            final_obs = np.concatenate(obs_list, axis=0)
+                            final_next_obs = np.concatenate(next_obs_list, axis=0)
+                            final_dones = np.concatenate(dones_list, axis=0)
+                            final_acs = np.concatenate(acs_list, axis=0)
+                            final_rews = np.concatenate(rews_list, axis=0)
+                            
+                            
+                            data_root_path = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/' + 'seed_' + k.split("_")[1] + '00_data'
+                            os.makedirs(data_root_path, exist_ok=True)
+                            np.save(data_root_path + '/obs_' + str(i) +".npy", final_obs)       
+                            np.save(data_root_path + '/next_obs_' + str(i) +".npy", final_next_obs)   
+                            np.save(data_root_path + '/dones_' + str(i) +".npy", final_dones)   
+                            np.save(data_root_path + '/acs_' + str(i) +".npy", final_acs)   
+                            np.save(data_root_path + '/rews_' + str(i) +".npy", final_rews)   
+            
                 
         if config.use_adapt_and_adapt_dataset:
             dataset_dir = config.dataset_dir + '/' + config.env_id + '/' + config.data_type + '/'
