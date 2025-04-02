@@ -156,7 +156,7 @@ class Scenario(BaseScenario):
             comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
 
-        print ('p_vel: {}, p_pos: {}, entity_pos: {}, other_pos: {}, comm: {}'.format(agent.state.p_vel, agent.state.p_pos, entity_pos, other_pos, comm))
+        #print ('p_vel: {}, p_pos: {}, entity_pos: {}, other_pos: {}, comm: {}'.format(agent.state.p_vel, agent.state.p_pos, entity_pos, other_pos, comm))
         # p_vel: [1.54798273 1.80932997]
         # p_pos: [1.64310331 2.93676854]
         # entity_pos: [array([-1.69713533, -2.61021445]), array([-1.0316461 , -3.43080753]), array([-2.48395644, -2.47124733])]

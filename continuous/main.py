@@ -17,6 +17,7 @@ import random
 import copy
 import shutil
 from utils.vae_class import VAE
+
 import wandb
 
 from utils.env_wrappers import SubprocVecEnv, DummyVecEnv
@@ -152,7 +153,7 @@ def offline_train(config):
         algo_name="cfcql"
     
     algo_name = "cfcql"
-    wandb.init(project="0327_CFCQL_HLReturn" + config.env_id + "_" + config.data_type, group = group_name + "_" + str(config.dataset_num), name = algo_name + "_seed_" + str(config.dataset_num))
+    wandb.init(project="0329_CFCQL_HLReturn_DS_"+ config.dataset_num[0] + "_" + config.env_id + "_" + config.data_type, group = group_name + "_" + str(config.dataset_num), name = algo_name + "_seed_" + str(config.dataset_num))
 
     if config.env_id in ['simple_spread', 'simple_tag', 'simple_world']:
         if config.env_id == 'simple_spread':
@@ -324,9 +325,6 @@ if __name__ == '__main__':
     parser.add_argument('--gaussian_noise_std', default=0.1, type=float)
 
     parser.add_argument("--data_type", default='medium-replay', type=str)
-    parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/combined_data/mpe', type=str)
-    parser.add_argument('--adapt_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/adapt_data/mpe', type=str)
-    parser.add_argument('--original_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str)
 
     
     parser.add_argument('--eval_episodes', default=10, type=int)
@@ -355,7 +353,7 @@ if __name__ == '__main__':
     parser.add_argument('--omar_num_samples', default=10, type=int)
     parser.add_argument('--omar_num_elites', default=10, type=int)
 
-    parser.add_argument("--logging_interval", default=100, type=int)
+    parser.add_argument("--logging_interval", default=1000, type=int)
     parser.add_argument("--central_critic", default=True, action='store_true')  ## MADDPGCC
     parser.add_argument("--no_log", action='store_true')
     parser.add_argument("--cf_cql", default=True, action='store_true')  ## CFCQL
@@ -365,7 +363,7 @@ if __name__ == '__main__':
     parser.add_argument("--no_cf_omar", action='store_true')
     parser.add_argument("--no_cf_pol", action='store_true')
     parser.add_argument("--cf_target", default=False, action='store_true')  ## Counterfactual target
-     
+
     
 
     parser.add_argument("--cf_weight", action='store_true')
@@ -378,20 +376,17 @@ if __name__ == '__main__':
 
     parser.add_argument("--cql", default=True, action='store_true')  ## CQL
     
-    
+    parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/combined_data/mpe', type=str)
+    parser.add_argument('--adapt_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/adapt_data/mpe', type=str)
+    parser.add_argument('--original_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str)
+    #parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str) ## For original DS
+
+
     parser.add_argument("--seed", default=0, type=int, help="Random seed")
-    parser.add_argument("--dataset_num", default="002111100", type=str, help="Dataset number") #5740110000
-    #parser.add_argument("--adapt_num_datasets", default=20000, type=int)
-    
-    #parser.add_argument("--adapt_threshold", default=0.05, type=float)
-    
-    #parser.add_argument("--adapt_th_mean", default=False, action="store_true")
+    parser.add_argument("--dataset_num", default="0", type=str, help="Dataset number") #5740110000
+
     parser.add_argument("--dataset_num_agents", default=3, type=int)
-    # parser.add_argument('--adapt_dataset_dir', default='./datasets/adapt/simple_spread/medium-replay/max_threshold_0.05/20000', type=str)
-    
-    #parser.add_argument("--origin", default=True, action="store_true")
-    #parser.add_argument("--adapt", default=False, action="store_true")
-    #parser.add_argument("--origin_and_adapt", default=False, action="store_true")
+
     
     parser.add_argument("--concat_datasets", default=False, action="store_true")
     parser.add_argument("--concat_datasets_alot", default=True, action="store_true")
