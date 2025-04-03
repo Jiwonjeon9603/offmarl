@@ -158,10 +158,10 @@ def offline_train(config):
         algo_name = ds_name
         ds_seed = ds_name.split("_")[1]
         DS_return = ds_name.split("_")[6]
-        wandb.init(project="0404_CQL_"+ config.env_id + "_" + config.data_type + "_ds_" + ds_seed + "_DSRt_" + DS_return, group = ds_name.split("_")[2], name = algo_name)
+        wandb.init(project="0404_CQL_lr1/2_"+ config.env_id + "_" + config.data_type + "_ds_" + ds_seed + "_DSRt_" + DS_return, group = ds_name.split("_")[2], name = algo_name)
     else:
         algo_name = "Original_DS"
-        wandb.init(project="0404_CQL_"+ config.env_id + "_" + config.data_type + "_ds_" +  str(config.dataset_num), group = group_name + "_" + str(config.dataset_num), name = algo_name + "_" + str(config.seed))
+        wandb.init(project="0404_CQL_lr1/2_"+ config.env_id + "_" + config.data_type + "_ds_" +  str(config.dataset_num), group = group_name + "_" + str(config.dataset_num), name = algo_name + "_" + str(config.seed))
         
     
     if config.env_id in ['simple_spread', 'simple_tag', 'simple_world']:
@@ -337,7 +337,7 @@ if __name__ == '__main__':
 
     
     parser.add_argument('--eval_episodes', default=10, type=int)  #10
-    parser.add_argument('--eval_interval', default=10000, type=int)  #1000
+    parser.add_argument('--eval_interval', default=20000, type=int)  #1000
     parser.add_argument('--num_steps', default=int(1e5), type=int)
 
     
