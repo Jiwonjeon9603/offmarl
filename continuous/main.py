@@ -153,15 +153,20 @@ def offline_train(config):
         algo_name="cfcql"
     
     algo_name = "cfcql"
-    ds_name = config.dataset_dir.split("/")[-1]
-    algo_name = ds_name
-    ds_seed = ds_name.split("_")[1]
-    DS_return = ds_name.split("_")[6]
-    wandb.init(project="0402_CQL_"+ config.env_id + "_" + config.data_type + "_seed_" + ds_seed + "_DSReturn_" + DS_return, group = group_name + "_" + str(config.dataset_num), name = algo_name + "_seed_" + str(config.dataset_num))
-
+    if config.use_ds_str:
+        ds_name = config.dataset_dir.split("/")[-1]
+        algo_name = ds_name
+        ds_seed = ds_name.split("_")[1]
+        DS_return = ds_name.split("_")[6]
+        wandb.init(project="0404_CQL_"+ config.env_id + "_" + config.data_type + "_ds_" + ds_seed + "_DSRt_" + DS_return, group = ds_name.split("_")[2], name = algo_name)
+    else:
+        algo_name = "Original_DS"
+        wandb.init(project="0404_CQL_"+ config.env_id + "_" + config.data_type + "_ds_" +  str(config.dataset_num), group = group_name + "_" + str(config.dataset_num), name = algo_name + "_" + str(config.seed))
+        
+    
     if config.env_id in ['simple_spread', 'simple_tag', 'simple_world']:
         if config.env_id == 'simple_spread':
-            config.lr=0.01
+            config.lr=0.005 #0.01
         elif config.env_id == 'simple_world':
             config.steps_per_update=20
 
@@ -319,7 +324,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", default=1024, type=int, help="Batch size for model training")
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--set_lr", action='store_true')
-    parser.add_argument("--lr", default=0.001, type=float)
+    parser.add_argument("--lr", default=0.0005, type=float)  # 0.001
     parser.add_argument("--tau", default=0.01, type=float)
     parser.add_argument('--num_updates', default=1, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
@@ -331,8 +336,8 @@ if __name__ == '__main__':
     parser.add_argument("--data_type", default='medium-replay', type=str)
 
     
-    parser.add_argument('--eval_episodes', default=10, type=int)
-    parser.add_argument('--eval_interval', default=1000, type=int)
+    parser.add_argument('--eval_episodes', default=10, type=int)  #10
+    parser.add_argument('--eval_interval', default=10000, type=int)  #1000
     parser.add_argument('--num_steps', default=int(1e5), type=int)
 
     
@@ -380,15 +385,15 @@ if __name__ == '__main__':
 
     parser.add_argument("--cql", default=True, action='store_true')  ## CQL
     
-    parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/combined_data/mpe', type=str)
+    #parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/combined_data/mpe', type=str)
     parser.add_argument('--adapt_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/adapt_data/mpe', type=str)
     parser.add_argument('--original_dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str)
-    #parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str) ## For original DS
+    parser.add_argument('--dataset_dir', default='/home/wisrl/jwjeon/madiff/diffuser/datasets/data/mpe', type=str) ## For original DS
 
-    parser.add_argument("--use_ds_str", default=True, action="store_true")
+    parser.add_argument("--use_ds_str", default=False, action="store_true")
     parser.add_argument("--dataset_str", default="dseed_0_OneAgent_SG_NoHR_DSReturn_0.0_adapth_0.02", type=str, help="Dataset name")
     
-    parser.add_argument("--seed", default=0, type=int, help="Random seed")
+    parser.add_argument("--seed", default=4, type=int, help="Random seed")
     parser.add_argument("--dataset_num", default="0", type=str, help="Dataset number") #5740110000
 
     parser.add_argument("--dataset_num_agents", default=3, type=int)
